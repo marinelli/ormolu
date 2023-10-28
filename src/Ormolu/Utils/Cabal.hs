@@ -40,9 +40,6 @@ import System.IO.Unsafe (unsafePerformIO)
 data CabalSearchResult
   = -- | Cabal file could not be found
     CabalNotFound
-  | -- | Cabal file was found, but it did not mention the source file in
-    -- question
-    CabalDidNotMention CabalInfo
   | -- | Cabal file was found and it mentions the source file in question
     CabalFound CabalInfo
   deriving (Eq, Show)
@@ -69,14 +66,23 @@ getCabalInfoForSourceFile ::
   -- | Extracted cabal info, if any
   m CabalSearchResult
 getCabalInfoForSourceFile sourceFile =
-  liftIO (findCabalFile sourceFile) >>= \case
+  getCabalInfoForSourceFile' sourceFile sourceFile
+
+getCabalInfoForSourceFile' ::
+  (MonadIO m) =>
+  -- | Path to the starting point for the search
+  FilePath ->
+  -- | Haskell source file
+  FilePath ->
+  -- | Extracted cabal info, if any
+  m CabalSearchResult
+getCabalInfoForSourceFile' rootOfSearch sourceFile =
+  liftIO (findCabalFile rootOfSearch) >>= \case
     Just cabalFile -> do
       (mentioned, cabalInfo) <- parseCabalInfo cabalFile sourceFile
-      return
-        ( if mentioned
-            then CabalFound cabalInfo
-            else CabalDidNotMention cabalInfo
-        )
+      if mentioned
+        then return $ CabalFound cabalInfo
+        else getCabalInfoForSourceFile' (takeDirectory cabalFile) sourceFile
     Nothing -> return CabalNotFound
 
 -- | Find the path to an appropriate @.cabal@ file for a Haskell source

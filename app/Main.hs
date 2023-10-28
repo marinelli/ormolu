@@ -89,17 +89,16 @@ formatOne ConfigFileOpts {..} mode reqSourceType rawConfig mpath =
                 hPutStrLn stderr $
                   "Could not find a .cabal file for " <> sourceFile
               return Nothing
-            CabalDidNotMention cabalInfo -> do
+            CabalFound cabalInfo -> do
               when debugEnabled $ do
                 relativeCabalFile <-
                   makeRelativeToCurrentDirectory (ciCabalFilePath cabalInfo)
                 hPutStrLn stderr $
                   "Found .cabal file "
                     <> relativeCabalFile
-                    <> ", but it did not mention "
+                    <> " for "
                     <> sourceFile
               return (Just cabalInfo)
-            CabalFound cabalInfo -> return (Just cabalInfo)
         getDotOrmoluForSourceFile' sourceFile = do
           if optDoNotUseDotOrmolu
             then return Nothing
